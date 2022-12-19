@@ -145,6 +145,7 @@ fun main() {
                         prevCurrentElement!!.addDirectory(el)
                         currentElement = el
                     }
+                    currentLevelOfIndent++
                 }
                 PROMPT_TYPE.COMMAND_LS -> {
                     //println("doing listing in node with name=${currentElement!!.nodeName}")
@@ -164,12 +165,16 @@ fun main() {
                 }
 
             }
-
-            if (prompt.promptType == PROMPT_TYPE.COMMAND_CD_LOWER_LEVEL)
-                currentLevelOfIndent++
         }
 
         return fileSystemStructure
+    }
+
+    fun findSizeOfDirectoryWhichDeletionWillGiveMoreSpace(dirList: List<Directory>, neededSpace: Int): Int {
+        val found = dirList.find {
+            it.size >= neededSpace
+        }
+        return found!!.size
     }
     //endregion
 
@@ -189,15 +194,40 @@ fun main() {
     }
 
     fun part2(input: List<String>): Int {
-        return input.size
+        val commandsList = createListOfCommands(input)
+        val fileStructure = createFileStructureMap(commandsList)
+
+        val flatten = fileStructure[0].getFlatten()
+        fileStructure[0].calculateSize()
+
+        //get list of dirs, sorted
+        val directories = flatten.map {
+            if (it is Directory)
+                it
+            else null
+        }.filterNotNull()
+            .toMutableList().apply {
+                add(Directory(fileStructure[0].size, fileStructure[0].nodeName, null))//add / directory
+            }
+            .sortedBy {
+                it.size
+            }
+
+        val totalSize = 70000000
+        val currentlyUsedSpace = fileStructure[0].size //currently used space
+        val freeSpace = totalSize - currentlyUsedSpace
+        val neededSpace = 30000000 - freeSpace
+
+        return findSizeOfDirectoryWhichDeletionWillGiveMoreSpace(directories, neededSpace)
     }
 
     // test if implementation meets criteria from the description, like:
     val testInput = readInput("Day07_test")
-    val sz = part1(testInput).also { println("sz=${it}") }
-    check(sz == 95437)
+    check(part1(testInput) == 95437)
 
     val input = readInput("Day07")
     println(part1(input))
-    //println(part2(input))
+
+    check(part2(testInput) == 24933642)
+    println(part2(input))
 }
